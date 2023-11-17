@@ -11,3 +11,9 @@ The code is dogshit I know, I'm not a regular coder and made most of it with the
 You can run it with 
 
 `python3 api.py` 
+
+Docker command (not secure, run only on a private network!)
+
+`
+docker run -d  --name testing   -v "$(pwd)/parameters.csv:/usr/src/app/parameters.csv"   -v "$(pwd)/active_interfaces.txt:/usr/src/app/active_interfaces.txt"   -v "$(pwd)/gost_command.txt:/usr/src/app/gost_command.txt"   -v "$(pwd)/wg_configs:/etc/wireguard"  --privileged -p 54324:8000 -p 4201:4201  --net=host gost_wg_webui
+`
