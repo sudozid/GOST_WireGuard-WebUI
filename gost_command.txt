@@ -1,0 +1,1 @@
+gost -L :4201?auth=dGVzdDI6dGVzdA== -F direct://:0?interface=wg1

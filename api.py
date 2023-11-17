@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request, render_template
 import re
 import wg_mgmt
 import gost_mgmt
-
+import subprocess
 import logging
 
 app = Flask(__name__)
@@ -152,6 +152,28 @@ def api_remove_wireguard_config():
     else:
         return jsonify({"status": "error", "message": f"Failed to remove WireGuard interface '{interface_name}'."}), 500
 
+@app.route('/api/wireguard/save_file', methods=['GET'])
+def save_active_interfaces_to_file():
+    try:
+        active_interfaces = wg_mgmt.get_active_wireguard_interfaces()
+        filename = 'active_interfaces.txt'
+
+        with open(filename, 'w') as file:
+            for interface in active_interfaces:
+                file.write(f"{interface}\n")
+
+        return jsonify({
+            "status": "success",
+            "message": f"Active WireGuard interfaces saved to {filename}."
+        })
+
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+
 ######################################GOST######################################################
 
 @app.route('/api/gost/get_config', methods=['GET'])
@@ -267,8 +289,70 @@ def update_gost_config():
         # Catch any other exceptions and return a server error
         return jsonify({"status": "error", "message": f"An error occurred while updating the configuration {e}"}), 500
 
+@app.route('/api/gost/start', methods=['GET'])
+def start_gost():
+    try:
+        # Check if GOST is already running
+        check_process = subprocess.run(["pgrep", "-f", "gost_auto"], stdout=subprocess.PIPE, text=True)
+        if check_process.stdout:
+            # GOST is already running
+            return jsonify({"status": "info", "message": "GOST is already running."})
 
-    
+        # If not running, start GOST in a detached screen session
+        command = f"screen -dmS gost_auto {gost_mgmt.construct_command()}"
+        subprocess.run(command, shell=True, check=True)
+        return jsonify({"status": "success", "message": "GOST started successfully."})
+    except subprocess.CalledProcessError as e:
+        # This will catch errors like the screen session already existing
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/gost/status', methods=['GET'])
+def check_gost_status():
+    try:
+        # Replace 'gost' with the actual process name or command used to run GOST
+        result = subprocess.run(["pgrep", "-f", "gost"], stdout=subprocess.PIPE)
+        
+        # If the return code is 0, the process is running
+        if result.returncode == 0:
+            return jsonify({"status": "success", "message": "GOST is running."})
+        else:
+            return jsonify({"status": "error", "message": "GOST is not running."})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/gost/stop', methods=['GET'])
+def stop_gost():
+    try:
+        # Use pkill to terminate all processes with the name 'gost'
+        subprocess.run(["pkill", "-f", "gost"], check=True)
+        
+        return jsonify({"status": "success", "message": "All GOST processes have been terminated."})
+    except subprocess.CalledProcessError:
+        # If pkill does not find any processes to kill, it will return a non-zero status
+        return jsonify({"status": "error", "message": "No GOST processes found or an error occurred while stopping GOST."}), 404
+    except Exception as e:
+        # Catch any other exceptions and return an error response
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/gost/save_command', methods=['GET'])
+def save_command():
+    try:
+        command = gost_mgmt.construct_command()
+        filename = 'gost_command.txt'
+        with open(filename, 'w') as file:
+            file.write(command)
+
+        return jsonify({
+            "status": "success",
+            "message": f"GOST command saved to {filename}."
+        })
+
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
 @app.route('/')
 def index():
     return render_template('index.html')

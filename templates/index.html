@@ -61,9 +61,7 @@ function showBootstrapToast(message, type = 'success') {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-
-
-    // Ensure the DOM is fully loaded before attaching event listeners
+    // Listen for click event on the Save Command button
 
     // Handle form submission for editing the configuration
     document.getElementById('editConfigForm').addEventListener('submit', function(e) {
@@ -193,22 +191,25 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch('/api/wireguard/get_active_interfaces').then(response => response.json())
     ])
     .then(([allInterfaces, activeInterfaces]) => {
-        let tableHtml = `<h1 class="mt-4">WireGuard Configuration Management</h1>
-                         <div>
-                             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addWireguardModal">
-                                 Add WireGuard Interface
-                             </button>
-                         </div>
-                         <table class="table">
-                             <thead>
-                                 <tr>
-                                     <th scope="col">#</th>
-                                     <th scope="col">Interface</th>
-                                     <th scope="col">Status</th>
-                                     <th scope="col">Actions</th>
-                                 </tr>
-                             </thead>
-                             <tbody>`;
+        let tableHtml = `<div class="container mt-4">
+                            <h1>WireGuard Configuration Management</h1>
+                            <div class="my-3 d-flex justify-content-between align-items-center"> <!-- Adds spacing and flex alignment -->
+                                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addWireguardModal">
+                                    Add WireGuard Interface
+                                </button>
+                                <button id="saveActiveInterfacesButton" class="btn btn-secondary mb-3" onclick="saveActiveInterfaces()">Save Active Interfaces</button>
+                            </div>
+                            <div class="table-responsive">
+                         <table class="table table-hover"> <!-- table-hover for hover effect -->
+                            <thead class="table-light"> <!-- Gives the header a light background -->
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Interface</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>`;
 
         allInterfaces.data.forEach((interface, index) => {
             const isActive = activeInterfaces.data.includes(interface);
@@ -363,7 +364,15 @@ function deleteInterface(interfaceName, buttonElement) {
 <!--scripts for gost section-->
 <script>
 
-    
+function showGostCommandOutputModal(message) {
+  // Set the message in the modal's paragraph
+  const outputParagraph = document.getElementById('gostCommandOutput');
+  outputParagraph.textContent = message;
+
+  // Use Bootstrap's modal method to show the modal
+  const commandOutputModal = new bootstrap.Modal(document.getElementById('gostCommandOutputModal'));
+  commandOutputModal.show();
+}   
 
 function loadGostConfigs() {
     fetch('/api/gost/get_config')
@@ -373,22 +382,31 @@ function loadGostConfigs() {
                 const configData = data.data;
 
                 // Create an HTML table
-                let tableHtml = `<h1 class="mt-4">GOST Configuration Management</h1>
-                                    <button type="button" class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addGostModal">
-                                        Add GOST Configuration
-                                    </button>
-                                    <table class="table">
-                                        <thead>
-                                            <tr>
-                                                <th scope="col">ID</th>
-                                                <th scope="col">Username</th>
-                                                <th scope="col">Password</th>
-                                                <th scope="col">Port</th>
-                                                <th scope="col">Interface</th>
-                                                <th scope="col">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>`;
+                let tableHtml = `   <div class="container mt-4">
+                                    <h1>GOST Configuration Management</h1>
+                                    <div class="my-3 d-flex justify-content-between align-items-center flex-wrap gap-2"> <!-- Flex container with gap -->
+                                        <button type="button" id="generateCommandButton" class="btn btn-primary">Generate Command</button>
+                                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addGostModal">
+                                            Add GOST Configuration
+                                        </button>
+                                        <!-- Place this in your HTML where you want the Save Command button -->
+                                        <button id="saveCommandButton" class="btn btn-warning mb-3" onclick="saveCommand()">Save Command</button>
+
+
+                                    </div>
+                                    <div class="table-responsive"> <!-- Makes table responsive -->
+                                        <table class="table table-hover"> <!-- table-hover for row hover effect -->
+                                            <thead class="table-light"> <!-- table-light for light header background -->
+                                                <tr>
+                                                    <th scope="col">ID</th>
+                                                    <th scope="col">Username</th>
+                                                    <th scope="col">Password</th>
+                                                    <th scope="col">Port</th>
+                                                    <th scope="col">Interface</th>
+                                                    <th scope="col">Actions</th>
+                                                </tr>
+                                            </thead>
+                                <tbody>`;
 
                 // Iterate through the data and populate the table rows
                 configData.forEach(row => {
@@ -400,17 +418,28 @@ function loadGostConfigs() {
 
                     // Create an Edit button and a Delete button for each row
                     tableHtml += `<tr id="row-${id}">
-                                    <td>${id}</td>
-                                    <td><input type="text" value="${username}" disabled></td>
-                                    <td><input type="text" value="${password}" disabled></td>
-                                    <td><input type="text" value="${port}" disabled></td>
-                                    <td><input type="text" value="${interfaceName}" disabled></td>
-                                    <td>
-                                        <button class="btn btn-primary btn-sm edit-button" data-id="${id}">Edit</button>
-                                        <button class="btn btn-danger btn-sm delete-button" data-id="${id}">Delete</button>
-                                        <button class="btn btn-success btn-sm save-button" data-id="${id}" style="display: none;">Save</button>
-                                    </td>
-                                  </tr>`;
+                        <td>${id}</td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm" value="${username}" disabled>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm" value="${password}" disabled>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm" value="${port}" disabled>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm" value="${interfaceName}" disabled>
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group" aria-label="Basic example"> <!-- Groups buttons together -->
+                                <button class="btn btn-primary btn-sm edit-button" data-id="${id}">Edit</button>
+                                <button class="btn btn-danger btn-sm delete-button" data-id="${id}">Delete</button>
+                                <button class="btn btn-success btn-sm save-button" data-id="${id}" style="display: none;">Save</button>
+                            </div>
+                        </td>
+                    </tr>
+                    `;
                 });
 
                 tableHtml += `</tbody></table>`;
@@ -429,7 +458,64 @@ function loadGostConfigs() {
 
                 document.querySelectorAll('.save-button').forEach(saveButton => {
                     saveButton.addEventListener('click', handleSaveClick);
+
                 });
+
+                document.getElementById('generateCommandButton').addEventListener('click', function() {
+    fetch('/api/gost/generate_command')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Populate the textarea in the modal with the command
+                document.getElementById('commandOutput').value = data.data;
+                // Show the modal
+                var commandModal = new bootstrap.Modal(document.getElementById('commandModal'));
+                commandModal.show();
+            } else {
+                console.error('Error:', data.message);
+                // Handle the error, e.g., show a message to the user
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching the command:', error);
+            // Handle network errors or other unforeseen errors
+        });
+
+// Get the output paragraph where the command or status will be displayed
+
+        // Start GOST
+document.getElementById('startGostButton').addEventListener('click', function() {
+    fetch('/api/gost/start')
+        .then(response => response.json())
+        .then(data =>  showGostCommandOutputModal(data.message))
+        .catch(error => showGostCommandOutputModal( 'Failed to check GOST status.'));
+});
+
+
+// Check GOST Status
+document.getElementById('checkGostStatusButton').addEventListener('click', function() {
+    fetch('/api/gost/status')
+        .then(response => response.json())
+        .then(data =>  showGostCommandOutputModal(data.message))
+        .catch(error => showGostCommandOutputModal( 'Failed to check GOST status.'));
+});
+
+// Stop GOST
+document.getElementById('stopGostButton').addEventListener('click', function() {
+    fetch('/api/gost/stop')
+        .then(response => response.json())
+        .then(data =>  showGostCommandOutputModal(data.message))
+        .catch(error => showGostCommandOutputModal( 'Failed to check GOST status.'));
+});
+
+// Function to show the command modal with a specific message
+function showCommandModal(message) {
+  outputParagraph.textContent = message;
+  var commandModal = new bootstrap.Modal(document.getElementById('commandModal'));
+  commandModal.show();
+}
+
+    });
             } else {
                 console.error('Error:', data.message);
                 // Optionally, display an error to the user using a modal or toast
@@ -440,6 +526,14 @@ function loadGostConfigs() {
             // Optionally, display an error to the user using a modal or toast
         });
 }
+
+document.addEventListener('DOMContentLoaded', (event) => {
+  // Now you can safely use the elements that depend on the DOM
+  const outputParagraph = document.getElementById('gostCommandOutput');
+
+  // Rest of your event listeners and functions that use `outputParagraph`
+});
+
 
 function handleEditClick(event) {
     const rowId = event.target.getAttribute('data-id');
@@ -493,6 +587,7 @@ function handleEditClick(event) {
     // Attach the event listeners once the DOM content is fully loaded
 document.addEventListener('DOMContentLoaded', function() {
 
+
     // JavaScript to handle the add GOST configuration form submission
     document.getElementById('addGostForm').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -540,6 +635,24 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
+function saveActiveInterfaces() {
+    fetch('/api/wireguard/save_file')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Inform the user that the interfaces were saved successfully
+                showGostCommandOutputModal('Active WireGuard interfaces saved successfully!');
+            } else {
+                // Inform the user that there was an error
+                showGostCommandOutputModal('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            // Handle any errors that occur during fetch
+            showGostCommandOutputModal('An error occurred while saving active interfaces.');
+            console.error('Fetch error:', error);
+        });
+}
 
 // Event listener for the Delete button click
 function handleDeleteClick(event) {
@@ -584,7 +697,7 @@ function handleEditClick(event) {
         .then(data => {
             // Create a select element to replace the interface input
             const select = document.createElement('select');
-            select.className = 'form-select';
+            select.className = 'form-select form-select-sm  ';
             select.name = 'interface';
 
             // Populate with options
@@ -638,6 +751,8 @@ function populateInterfacesDropdown() {
         });
         
 }
+
+
 
 
 // Event listener for the Save button click
@@ -698,6 +813,27 @@ function handleSaveClick(event) {
         row.querySelector('.save-button').style.display = 'none';
     })
     ;
+}
+
+// Define the saveCommand function to be called on button click
+function saveCommand() {
+    // Fetch request to the save command API endpoint
+    fetch('/api/gost/save_command')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Handle success - you might want to inform the user
+                showGostCommandOutputModal('Command saved successfully!');
+            } else {
+                // Handle error - inform the user
+                showGostCommandOutputModal('Error saving command: ' + data.message);
+            }
+        })
+        .catch(error => {
+            // Handle network errors
+            showGostCommandOutputModal('Network error while saving command.');
+            showBootstrapToast('Fetch error:', error);
+        });
 }
 
 </script>
@@ -781,9 +917,42 @@ function handleSaveClick(event) {
     </div>
 </div>
 
+<!-- Command Modal -->
+<div class="modal fade" id="commandModal" tabindex="-1" aria-labelledby="commandModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg"> <!-- You can control the size with modal-lg or modal-sm -->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="commandModalLabel">GOST Command</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <textarea id="commandOutput" class="form-control mb-3" rows="4" readonly></textarea> <!-- mb-3 adds margin-bottom -->
+                <!-- Command Buttons -->
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end"> <!-- This will layout your buttons nicely -->
+                    <button id="startGostButton" class="btn btn-success me-md-2">Start GOST</button> <!-- me-md-2 adds margin-end -->
+                    <button id="checkGostStatusButton" class="btn btn-info me-md-2">Check GOST Status</button>
+                    <button id="stopGostButton" class="btn btn-danger">Stop GOST</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 
-
-
+<!-- Gost Command Output Modal -->
+<div class="modal fade" id="gostCommandOutputModal" tabindex="-1" aria-labelledby="gostCommandOutputModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="gostCommandOutputModalLabel">GOST Command Output</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="gostCommandOutput">Output will be displayed here...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
 </body>
 </html>
