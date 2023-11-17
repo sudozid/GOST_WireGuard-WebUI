@@ -1,0 +1,33 @@
+/* Styles for the sidebar */
+#sidebar-wrapper {
+    min-width: 250px;
+    max-width: 250px;
+    height: 100vh;
+    margin-left: -250px;
+    background: #f8f9fa;
+    transition: margin 0.25s ease-out;
+}
+
+#page-content-wrapper {
+    width: 100%;
+    transition: width 0.25s ease-out;
+}
+
+/* Show the sidebar on hover */
+#wrapper:hover #sidebar-wrapper {
+    margin-left: 0;
+}
+
+#wrapper:hover #page-content-wrapper {
+    width: calc(100% - 250px);
+}
+
+.list-group-item-action.active {
+    background-color: #007bff;
+    color: white;
+}
+
+/* Content styles */
+.container-fluid {
+    padding: 2rem;
+}
