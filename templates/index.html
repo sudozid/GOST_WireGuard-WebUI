@@ -3,12 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>WireGuard GOST WebUI</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
-        <!-- Bootstrap JavaScript and dependencies -->
-    <!-- Make sure this matches the Bootstrap CSS version -->
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.bundle.min.js"></script>
 </head>
 <body>
 
@@ -22,10 +18,7 @@
             <a href="#" class="list-group-item list-group-item-action bg-light" id="wireguard-config">WireGuard</a>
             <a href="#" class="list-group-item list-group-item-action bg-light" id="gost-config">GOST</a>
         </div>
-
     </div>
-
-
     <!-- /#sidebar-wrapper -->
 
     <!-- Page Content -->
@@ -40,231 +33,43 @@
 
 
 
-
-
-
 <script>
-$(document).ready(function() {
-    // Code for toggling GOST configuration management
-    $("#gost-config").click(function(e) {
+
+function showBootstrapToast(message, type = 'success') {
+    // Create a toast element
+    var toastEl = document.createElement('div');
+    toastEl.classList.add('toast', 'align-items-center', 'text-white', 'bg-' + type, 'border-0');
+    toastEl.setAttribute('role', 'alert');
+    toastEl.setAttribute('aria-live', 'assertive');
+    toastEl.setAttribute('aria-atomic', 'true');
+
+    toastEl.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    `;
+
+    // Append the toast element to the body or a .toast-container
+    document.body.appendChild(toastEl);
+
+    // Initialize the toast and show it
+    var toast = new bootstrap.Toast(toastEl);
+    toast.show();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+
+
+    // Ensure the DOM is fully loaded before attaching event listeners
+
+    // Handle form submission for editing the configuration
+    document.getElementById('editConfigForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        $(".container-fluid").html('<h1 class="mt-4">GOST Configuration Management</h1><p>Manage your GOST configurations here.</p>');
-        // Additional logic to load GOST Configuration Management UI can be added here
-    });
-
-    // Code for toggling WireGuard configuration management
-    $("#wireguard-config").click(function(e) {
-        e.preventDefault();
-        loadWireguardConfigs();
-    });
-
-// JavaScript to handle the add interface form submission
-document.getElementById('addWireguardForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const wgConfig = document.getElementById('wgConfigTextarea').value;
-    
-    // Submit the configuration to the Flask API
-    fetch('/api/wireguard/add', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `wg_config=${encodeURIComponent(wgConfig)}`
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === "success") {
-            console.log(data.message);
-            // Close the modal
-            $('#addWireguardModal').modal('hide');
-            // Optionally, clear the textarea
-            document.getElementById('wgConfigTextarea').value = '';
-            // Reload the configurations to show the new interface
-            loadWireguardConfigs();
-        } else {
-            console.error('Error:', data.message);
-            // Show an error message in the modal
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-    });
-});
-
-});
-
-// Function to fetch and display WireGuard configurations with their status
-function loadWireguardConfigs() {
-    Promise.all([
-        fetch('/api/wireguard/interfaces').then(response => response.json()),
-        fetch('/api/wireguard/get_active_interfaces').then(response => response.json())
-    ])
-    .then(([allInterfaces, activeInterfaces]) => {
-        let tableHtml = `<h1 class="mt-4">WireGuard Configuration Management</h1>        <div><!-- Add Interface Button -->
-<button class="btn btn-success" data-toggle="modal" data-target="#addWireguardModal">Add WireGuard Interface</button></div>
-
-
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th scope="col">#</th>
-                                    <th scope="col">Interface</th>
-                                    <th scope="col">Status</th>
-                                    <th scope="col">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>`;
-
-        allInterfaces.data.forEach((interface, index) => {
-            const isActive = activeInterfaces.data.includes(interface);
-            const status = isActive ? 'Up' : 'Down';
-            const statusClass = isActive ? 'text-success' : 'text-secondary';
-            
-            tableHtml += `<tr>
-                            <th scope="row">${index + 1}</th>
-                            <td>${interface}</td>
-                            <td class="${statusClass}">${status}</td>
-                            <td>
-                                <button class="btn btn-primary btn-sm" onclick="startInterface('${interface}')">Start</button>
-                                <button class="btn btn-secondary btn-sm" onclick="stopInterface('${interface}')">Stop</button>
-                                <button class="btn btn-info btn-sm" onclick="editInterface('${interface}')">Edit</button>
-                                <button class="btn btn-danger btn-sm" onclick="deleteInterface('${interface}', this)">Delete</button>
-                            </td>
-                        </tr>`;
-        });
-
-        tableHtml += `</tbody></table>`;
-        $(".container-fluid").html(tableHtml);
-    })
-    .catch(error => {
-        console.error('Error fetching WireGuard configurations:', error);
-    });
-}
-
-// Implement the startInterface, stopInterface, and deleteInterface functions as needed
-
-function deleteInterface(interfaceName, buttonElement) {
-    if (interfaceName) {
-        // Using fetch to make the GET request
-        fetch(`/api/wireguard/remove_config?interface=${interfaceName}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok.');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    // Display Bootstrap success alert
-                    displayAlert('success', 'Interface deleted successfully.');
-
-                    // Remove the table row for this interface
-                    if (buttonElement) {
-                        const row = buttonElement.closest('tr');
-                        row.remove();
-                    }
-                } else {
-                    // Display Bootstrap error alert
-                    displayAlert('danger', 'Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                // Display Bootstrap error alert
-                displayAlert('danger', 'An error occurred while trying to delete the interface.');
-            });
-    }
-}
-
-function displayAlert(type, message) {
-    const alertPlaceholder = document.getElementById('alert-placeholder');
-    const alert = `<div class="alert alert-${type}" role="alert">${message}</div>`;
-    alertPlaceholder.innerHTML = alert;
-    alertPlaceholder.style.display = 'block';
-}
-
-// Function to stop an interface
-function stopInterface(interfaceName) {
-    fetch(`/api/wireguard/stop_config?interface=${encodeURIComponent(interfaceName)}`, {
-        method: 'GET'
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.status === "success" || data.status === "warning") {
-            console.log(data.message);
-            // Update the UI to reflect that the interface has been stopped
-            loadWireguardConfigs();  // Reload the interface list to reflect the change
-        } else {
-            console.error(data.message);
-            // Handle the error. Show an error message to the user, etc.
-        }
-    })
-    .catch(error => {
-        console.error('Error stopping the interface:', error);
-        // Handle network errors or other unforeseen errors
-    });
-}
-
-// Function to start an interface
-function startInterface(interfaceName) {
-    fetch(`/api/wireguard/start_config?interface=${encodeURIComponent(interfaceName)}`, {
-        method: 'GET'  // Though it's typically better practice to use 'POST' for such operations
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.status === "success") {
-            console.log(data.message);
-            // Update the UI to reflect that the interface has been started
-            loadWireguardConfigs();  // Reload the interface list to reflect the change
-        } else {
-            console.error(data.message);
-            // Handle the error. Show an error message to the user, etc.
-        }
-    })
-    .catch(error => {
-        console.error('Error starting the interface:', error);
-        // Handle network errors or other unforeseen errors
-    });
-}
-
-
- // Function to open edit interface modal and fetch configuration
- function editInterface(interfaceName) {
-        fetch(`/api/wireguard/get_config?interface=${encodeURIComponent(interfaceName)}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === "success") {
-                    // Set the hidden field value to the interface name
-                    $('#editInterfaceName').val(interfaceName);
-                    // Set the textarea value to the current configuration
-                    $('#editConfigTextArea').val(data.message);
-                    // Show the edit configuration modal
-                    $('#editConfigurationModal').modal('show');
-                } else {
-                    console.error('Error fetching configuration:', data.message);
-                    // Handle error
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-    }
-
-// Handle form submission for editing the configuration
-    $('#editConfigForm').submit(function(e) {
-        e.preventDefault();
-        const interfaceName = $('#editInterfaceName').val();
-        const newConfig = $('#editConfigTextArea').val();
+        const interfaceName = document.getElementById('editInterfaceName').value;
+        const newConfig = document.getElementById('editConfigTextArea').value;
 
         // Submit the updated configuration
         fetch('/api/wireguard/modify_config', {
@@ -279,39 +84,639 @@ function startInterface(interfaceName) {
             if (data.status === "success") {
                 console.log(data.message);
                 // Hide the modal
-                $('#editConfigurationModal').modal('hide');
+                var editConfigurationModal = new bootstrap.Modal(document.getElementById('editConfigurationModal'));
+                editConfigurationModal.hide();
                 // Optionally, clear the textarea
-                $('#editConfigTextArea').val('');
+                document.getElementById('editConfigTextArea').value = '';
                 // Reload the configurations to show the updated interface
                 loadWireguardConfigs();
             } else {
                 console.error('Error:', data.message);
                 // Show an error message
+                showBootstrapToast('Error: ' + data.message, 'danger');
             }
         })
         .catch(error => {
             console.error('Error:', error);
+            showBootstrapToast('An error occurred while updating the configuration.', 'danger');
         });
     });
+});
 
+
+
+// Code here has been updated to remove jQuery dependency and use vanilla JavaScript instead
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('gost-config').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.querySelector(".container-fluid").innerHTML = '<h1 class="mt-4">GOST Configuration Management</h1><p>Manage your GOST configurations here.</p>';
+    });
+
+    document.getElementById('wireguard-config').addEventListener('click', function(e) {
+        e.preventDefault();
+        loadWireguardConfigs();
+    });
+
+    // The rest of your JavaScript code updated to use vanilla JS instead of jQuery
+    // ...
+});
+
+// Remember to update all the jQuery parts in your original script to vanilla JavaScript
+</script>
+
+<!-- Bootstrap JavaScript Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('gost-config').addEventListener('click', function(e) {
+        e.preventDefault();
+        loadGostConfigs();
+    });
+        // Code for toggling GOST configuration management
+        document.getElementById('gost-config').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelector(".container-fluid").innerHTML = '<h1 class="mt-4">GOST Configuration Management</h1><p>Manage your GOST configurations here.</p>';
+        });
+    
+        // Code for toggling WireGuard configuration management
+        document.getElementById('wireguard-config').addEventListener('click', function(e) {
+            e.preventDefault();
+            loadWireguardConfigs();
+        });
+    
+        // JavaScript to handle the add interface form submission
+        document.getElementById('addWireguardForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const wgConfig = document.getElementById('wgConfigTextarea').value;
+    
+            // Submit the configuration to the Flask API
+            fetch('/api/wireguard/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `wg_config=${encodeURIComponent(wgConfig)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    console.log(data.message);
+                    // Close the modal
+                    var addWireguardModal = new bootstrap.Modal(document.getElementById('addWireguardModal'));
+                    addWireguardModal.hide();
+                    // Optionally, clear the textarea
+                    document.getElementById('wgConfigTextarea').value = '';
+                    // Reload the configurations to show the new interface
+                    loadWireguardConfigs();
+                } else {
+                    console.error('Error:', data.message);
+                    // Show an error message in the modal
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    
+        // ... rest of the event handlers and functions ...
+    });
+    
+    // ... rest of your functions that need to be updated to vanilla JS ...
+</script>
+    
+<script>
+
+    function loadWireguardConfigs() {
+    Promise.all([
+        fetch('/api/wireguard/interfaces').then(response => response.json()),
+        fetch('/api/wireguard/get_active_interfaces').then(response => response.json())
+    ])
+    .then(([allInterfaces, activeInterfaces]) => {
+        let tableHtml = `<h1 class="mt-4">WireGuard Configuration Management</h1>
+                         <div>
+                             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addWireguardModal">
+                                 Add WireGuard Interface
+                             </button>
+                         </div>
+                         <table class="table">
+                             <thead>
+                                 <tr>
+                                     <th scope="col">#</th>
+                                     <th scope="col">Interface</th>
+                                     <th scope="col">Status</th>
+                                     <th scope="col">Actions</th>
+                                 </tr>
+                             </thead>
+                             <tbody>`;
+
+        allInterfaces.data.forEach((interface, index) => {
+            const isActive = activeInterfaces.data.includes(interface);
+            const status = isActive ? 'Up' : 'Down';
+            const statusClass = isActive ? 'text-success' : 'text-secondary';
+            
+            tableHtml += `<tr>
+                              <th scope="row">${index + 1}</th>
+                              <td>${interface}</td>
+                              <td class="${statusClass}">${status}</td>
+                              <td>
+                                  <button class="btn btn-primary btn-sm" onclick="startInterface('${interface}')">Start</button>
+                                  <button class="btn btn-secondary btn-sm" onclick="stopInterface('${interface}')">Stop</button>
+                                  <button class="btn btn-info btn-sm" onclick="editInterface('${interface}')">Edit</button>
+                                  <button class="btn btn-danger btn-sm" onclick="deleteInterface('${interface}', this)">Delete</button>
+                              </td>
+                          </tr>`;
+        });
+
+        tableHtml += `</tbody></table>`;
+
+        // Use vanilla JS to insert the HTML
+        document.querySelector(".container-fluid").innerHTML = tableHtml;
+    })
+    .catch(error => {
+        console.error('Error fetching WireGuard configurations:', error);
+    });
+}
+
+function stopInterface(interfaceName) {
+    fetch(`/api/wireguard/stop_config?interface=${encodeURIComponent(interfaceName)}`, {
+        method: 'GET'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === "success" || data.status === "warning") {
+            console.log(data.message);
+            // Update the UI to reflect that the interface has been stopped
+            loadWireguardConfigs(); // Reload the interface list to reflect the change
+            // Show a Bootstrap 5 toast message as feedback
+            showBootstrapToast('Interface stopped successfully.');
+        } else {
+            console.error(data.message);
+            // Handle the error. Show an error message to the user, etc.
+            showBootstrapToast('Error stopping interface: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error stopping the interface:', error);
+        // Handle network errors or other unforeseen errors
+        showBootstrapToast('Network error while stopping interface.', 'error');
+    });
+}
+
+function startInterface(interfaceName) {
+    fetch(`/api/wireguard/start_config?interface=${encodeURIComponent(interfaceName)}`, {
+        method: 'GET'  // For state-changing operations, consider using 'POST' if appropriate
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === "success") {
+            console.log(data.message);
+            // Update the UI to reflect that the interface has been started
+            loadWireguardConfigs(); // Reload the interface list to reflect the change
+            showBootstrapToast('Interface started successfully.'); // Show success toast message
+        } else {
+            console.error(data.message);
+            // Handle the error. Show an error message to the user, etc.
+            showBootstrapToast('Error starting interface: ' + data.message, 'danger'); // Show error toast message
+        }
+    })
+    .catch(error => {
+        console.error('Error starting the interface:', error);
+        // Handle network errors or other unforeseen errors
+        showBootstrapToast('Network error while starting interface.', 'danger'); // Show network error toast message
+    });
+}
+
+// Function to open edit interface modal and fetch configuration
+function editInterface(interfaceName) {
+    fetch(`/api/wireguard/get_config?interface=${encodeURIComponent(interfaceName)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                // Set the hidden field value to the interface name
+                document.getElementById('editInterfaceName').value = interfaceName;
+                // Set the textarea value to the current configuration
+                document.getElementById('editConfigTextArea').value = data.message;
+                // Show the edit configuration modal using Bootstrap 5
+                var editModal = new bootstrap.Modal(document.getElementById('editConfigurationModal'));
+                editModal.show();
+            } else {
+                console.error('Error fetching configuration:', data.message);
+                // Optionally, you can display this error to the user using a toast or alert
+                showBootstrapToast('Error fetching configuration: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Optionally, you can display this error to the user using a toast or alert
+            showBootstrapToast('Error: ' + error, 'danger');
+        });
+}
+
+function deleteInterface(interfaceName, buttonElement) {
+    if (interfaceName) {
+        // Using fetch to make the GET request
+        fetch(`/api/wireguard/remove_config?interface=${interfaceName}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    // Use Bootstrap 5 toast for success message
+                    showBootstrapToast('Interface deleted successfully.');
+
+                    // Remove the table row for this interface
+                    if (buttonElement) {
+                        const row = buttonElement.closest('tr');
+                        row.remove();
+                    }
+                } else {
+                    // Use Bootstrap 5 toast for error message
+                    showBootstrapToast('Error: ' + data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Use Bootstrap 5 toast for error message
+                showBootstrapToast('An error occurred while trying to delete the interface.', 'danger');
+            });
+    }
+}
 
 
 </script>
 
+
+<!--scripts for gost section-->
+<script>
+
+    
+
+function loadGostConfigs() {
+    fetch('/api/gost/get_config')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                const configData = data.data;
+
+                // Create an HTML table
+                let tableHtml = `<h1 class="mt-4">GOST Configuration Management</h1>
+                                    <button type="button" class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addGostModal">
+                                        Add GOST Configuration
+                                    </button>
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">ID</th>
+                                                <th scope="col">Username</th>
+                                                <th scope="col">Password</th>
+                                                <th scope="col">Port</th>
+                                                <th scope="col">Interface</th>
+                                                <th scope="col">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>`;
+
+                // Iterate through the data and populate the table rows
+                configData.forEach(row => {
+                    const id = row[0];
+                    const username = row[1];
+                    const password = row[2];
+                    const port = row[3];
+                    const interfaceName = row[4];
+
+                    // Create an Edit button and a Delete button for each row
+                    tableHtml += `<tr id="row-${id}">
+                                    <td>${id}</td>
+                                    <td><input type="text" value="${username}" disabled></td>
+                                    <td><input type="text" value="${password}" disabled></td>
+                                    <td><input type="text" value="${port}" disabled></td>
+                                    <td><input type="text" value="${interfaceName}" disabled></td>
+                                    <td>
+                                        <button class="btn btn-primary btn-sm edit-button" data-id="${id}">Edit</button>
+                                        <button class="btn btn-danger btn-sm delete-button" data-id="${id}">Delete</button>
+                                        <button class="btn btn-success btn-sm save-button" data-id="${id}" style="display: none;">Save</button>
+                                    </td>
+                                  </tr>`;
+                });
+
+                tableHtml += `</tbody></table>`;
+
+                // Replace the content in the GOST section with the table
+                document.querySelector(".container-fluid").innerHTML = tableHtml;
+
+                // Add event listeners for the Edit, Delete, and Save buttons
+                document.querySelectorAll('.edit-button').forEach(editButton => {
+                    editButton.addEventListener('click', handleEditClick);
+                });
+
+                document.querySelectorAll('.delete-button').forEach(deleteButton => {
+                    deleteButton.addEventListener('click', handleDeleteClick);
+                });
+
+                document.querySelectorAll('.save-button').forEach(saveButton => {
+                    saveButton.addEventListener('click', handleSaveClick);
+                });
+            } else {
+                console.error('Error:', data.message);
+                // Optionally, display an error to the user using a modal or toast
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching GOST configurations:', error);
+            // Optionally, display an error to the user using a modal or toast
+        });
+}
+
+function handleEditClick(event) {
+    const rowId = event.target.getAttribute('data-id');
+    const row = document.getElementById(`row-${rowId}`);
+    const interfaceCell = row.querySelector('td:nth-child(5)');
+    // Check if the cell contains an input or select, and get the current value accordingly
+    const currentInterfaceInput = interfaceCell.querySelector('input');
+    const currentInterfaceSelect = interfaceCell.querySelector('select');
+    const currentInterface = currentInterfaceInput ? currentInterfaceInput.value : (currentInterfaceSelect ? currentInterfaceSelect.value : '');
+
+    // Proceed to fetch network interfaces only if currentInterface is obtained
+    if (currentInterface) {
+        fetch('/api/gost/get_interfaces')
+            .then(response => response.json())
+            .then(data => {
+                // Assuming the API returns an array of interfaces
+                // Clear the cell and create a select element within it
+                interfaceCell.innerHTML = '';
+                const selectElement = document.createElement('select');
+                selectElement.className = 'form-select';
+                selectElement.name = 'interface';
+
+                // Populate the select element with options from the fetched data
+                data.forEach(iface => {
+                    const option = document.createElement('option');
+                    option.value = iface;
+                    option.textContent = iface;
+                    // If this interface is the current one, mark it as selected
+                    if (iface === currentInterface) {
+                        option.selected = true;
+                    }
+                    selectElement.appendChild(option);
+                });
+
+                // Replace the current interface cell with the new select element
+                interfaceCell.appendChild(selectElement);
+
+                // Hide the Edit button and show the Save button
+                row.querySelector('.edit-button').style.display = 'none';
+                row.querySelector('.save-button').style.display = 'inline-block';
+            })
+            .catch(error => {
+                console.error('Error fetching network interfaces:', error);
+            });
+    } else {
+        console.error('Error: No input or select found for interface value');
+    }
+}
+
+
+    // Attach the event listeners once the DOM content is fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+
+    // JavaScript to handle the add GOST configuration form submission
+    document.getElementById('addGostForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const port = document.getElementById('port').value;
+        const interfaceName = document.getElementById('interface').value;
+
+        // Submit the configuration to the Flask API
+        fetch('/api/gost/add_config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&port=${encodeURIComponent(port)}&interface=${encodeURIComponent(interfaceName)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                console.log(data.message);
+                // Hide the modal using Bootstrap 5's modal instance
+                var addGostModal = bootstrap.Modal.getInstance(document.getElementById('addGostModal'));
+                addGostModal.hide();
+                // Clear the form fields
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+                document.getElementById('port').value = '';
+                document.getElementById('interface').value = '';
+                // Reload the configurations to show the new GOST configuration
+                loadGostConfigs();
+            } else {
+                console.error('Error:', data.message);
+                // Optionally, show an error message in the modal
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Optionally, display an error to the user using a modal or toast
+        });
+    });
+
+    // Event listener to populate the dropdown when the modal is about to be shown
+    document.getElementById('addGostModal').addEventListener('show.bs.modal', populateInterfacesDropdown);
+});
+
+
+
+// Event listener for the Delete button click
+function handleDeleteClick(event) {
+    const rowId = event.target.getAttribute('data-id');
+
+    // Make a DELETE request to the API to delete the corresponding row
+    fetch(`/api/gost/remove_config?id=${rowId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === "success") {
+            console.log(data.message);
+            // Remove the deleted row from the table
+            const row = document.getElementById(`row-${rowId}`);
+            row.remove();
+        } else {
+            console.error('Error:', data.message);
+            // Handle the error. Show an error message to the user, etc.
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting row:', error);
+        // Handle network errors or other unforeseen errors
+    });
+}
+
+function handleEditClick(event) {
+    const rowId = event.target.getAttribute('data-id');
+    const row = document.getElementById(`row-${rowId}`);
+    const inputs = row.querySelectorAll('input[type="text"]');
+    const interfaceInput = row.querySelector('td:nth-child(5) input');
+
+    // Enable all input fields for editing
+    inputs.forEach(input => {
+        input.disabled = false;
+    });
+
+    // Fetch network interfaces and create a select element for the interface cell
+    fetch('/api/gost/get_interfaces')
+        .then(response => response.json())
+        .then(data => {
+            // Create a select element to replace the interface input
+            const select = document.createElement('select');
+            select.className = 'form-select';
+            select.name = 'interface';
+
+            // Populate with options
+            data.forEach(iface => {
+                const option = document.createElement('option');
+                option.value = iface;
+                option.textContent = iface;
+                if (iface === interfaceInput.value) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+
+            // Replace the interface input with the select dropdown
+            interfaceInput.replaceWith(select);
+        })
+        .catch(error => {
+            console.error('Error fetching network interfaces:', error);
+        });
+
+    // Change the display of buttons
+    const editButton = row.querySelector('.edit-button');
+    const saveButton = row.querySelector('.save-button');
+    editButton.style.display = 'none';
+    saveButton.style.display = 'inline-block';
+}
+
+
+
+
+// Function to populate interfaces dropdown
+function populateInterfacesDropdown() {
+    fetch('/api/gost/get_interfaces')
+        .then(response => response.json())
+        .then(data => {
+            if (Array.isArray(data)) { // Assuming the API returns an array of interface names
+                const select = document.getElementById('interface');
+                select.innerHTML = ''; // Clear current options
+                data.forEach(iface => {
+                    const option = document.createElement('option');
+                    option.value = iface;
+                    option.textContent = iface;
+                    select.appendChild(option);
+                });
+            } else {
+                console.error('Error:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching interfaces:', error);
+        });
+        
+}
+
+
+// Event listener for the Save button click
+function handleSaveClick(event) {
+    const rowId = event.target.getAttribute('data-id');
+    const row = document.getElementById(`row-${rowId}`);
+
+    // Use nth-child to select the inputs based on their position in the row
+    const usernameInput = row.querySelector('td:nth-child(2) input');
+    const passwordInput = row.querySelector('td:nth-child(3) input');
+    const portInput = row.querySelector('td:nth-child(4) input');
+    // Check if the interface cell has a select or an input, and select accordingly
+    const interfaceInput = row.querySelector('td:nth-child(5) select') || row.querySelector('td:nth-child(5) input');
+
+    // Create a FormData object to hold our updated data
+    let formData = new FormData();
+    formData.append('id', rowId);
+    formData.append('username', usernameInput ? usernameInput.value : '');
+    formData.append('password', passwordInput ? passwordInput.value : '');
+    formData.append('port', portInput ? portInput.value : '');
+    formData.append('interface', interfaceInput ? interfaceInput.value : '');
+
+    // Disable the inputs and the save button while the request is in progress
+    row.querySelectorAll('input, select').forEach(input => input.disabled = true);
+    row.querySelector('.edit-button').style.display = 'none';
+    row.querySelector('.save-button').style.display = 'none';
+
+    // Make a PUT request to your API to update the row
+    fetch('/api/gost/update_config', {
+        method: 'PUT',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === "success") {
+            console.log('Update successful:', data.message);
+            // Reload the configurations to reflect the changes
+            // loadGostConfigs(); // Uncomment or add your own function to refresh the list
+        } else {
+            console.error('Error:', data.message);
+            // Re-enable the inputs on error so the user can try again
+            row.querySelectorAll('input, select').forEach(input => input.disabled = false);
+            row.querySelector('.save-button').style.display = 'inline-block';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // Re-enable the inputs on error so the user can try again
+        row.querySelectorAll('input, select').forEach(input => input.disabled = false);
+        row.querySelector('.save-button').style.display = 'inline-block';
+    })
+    .finally(() => {
+        // This will always execute after the fetch operation is complete, regardless of the outcome
+        // Re-enable the Edit and Delete buttons, hide the Save button, and disable the inputs
+        row.querySelectorAll('input, select').forEach(input => input.disabled = true); // Inputs should stay disabled
+        row.querySelector('.edit-button').style.display = 'inline-block';
+        row.querySelector('.delete-button').style.display = 'inline-block';
+        row.querySelector('.save-button').style.display = 'none';
+    })
+    ;
+}
+
+</script>
+
+
+<!--modals-->
+
 <!-- Add WireGuard Configuration Modal -->
-<div class="modal fade" id="addWireguardModal" tabindex="-1" role="dialog" aria-labelledby="addWireguardModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+<div class="modal fade" id="addWireguardModal" tabindex="-1" aria-labelledby="addWireguardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="addWireguardModalLabel">Add WireGuard Interface</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="addWireguardForm">
-                    <div class="form-group">
-                        <label for="wgConfigTextarea">Configuration</label>
+                    <div class="mb-3">
+                        <label for="wgConfigTextarea" class="form-label">Configuration</label>
                         <textarea class="form-control" id="wgConfigTextarea" rows="10" placeholder="Enter WireGuard configuration here"></textarea>
                     </div>
                     <button type="submit" class="btn btn-primary">Add Interface</button>
@@ -322,19 +727,17 @@ function startInterface(interfaceName) {
 </div>
 
 <!-- Edit Configuration Modal -->
-<div class="modal fade" id="editConfigurationModal" tabindex="-1" role="dialog" aria-labelledby="editConfigurationModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+<div class="modal fade" id="editConfigurationModal" tabindex="-1" aria-labelledby="editConfigurationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="editConfigurationModalLabel">Edit Configuration</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="editConfigForm">
-                    <div class="form-group">
-                        <label for="editConfigTextArea">Configuration</label>
+                    <div class="mb-3">
+                        <label for="editConfigTextArea" class="form-label">Configuration</label>
                         <textarea class="form-control" id="editConfigTextArea" rows="10"></textarea>
                     </div>
                     <input type="hidden" id="editInterfaceName" value="">
@@ -344,6 +747,42 @@ function startInterface(interfaceName) {
         </div>
     </div>
 </div>
+
+<!-- Add GOST Configuration Modal -->
+<div class="modal fade" id="addGostModal" tabindex="-1" aria-labelledby="addGostModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addGostModalLabel">Add GOST Configuration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addGostForm">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username:</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password:</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="port" class="form-label">Port:</label>
+                        <input type="number" class="form-control" id="port" name="port" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="interface" class="form-label">Interface:</label>
+                        <select class="form-select" id="interface" name="interface" required></select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Configuration</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
 
 
 </body>

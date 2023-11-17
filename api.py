@@ -187,10 +187,10 @@ def generate_command():
             "message": "An error occurred while generating the command."
         }), 500
 
-@app.route('/api/gost/remove_config', methods=['GET'])
+@app.route('/api/gost/remove_config', methods=['DELETE'])
 def remove_config():
     csv_path = 'path_to_your_csv.csv'  # Replace with the path to your CSV file
-    item_id = request.form.get('id')  # Get the 'id' from GET parameter
+    item_id = request.args.get('id')  # Get the 'id' from GET parameter
 
     # Check if 'id' parameter is provided
     if not item_id:
@@ -204,6 +204,7 @@ def remove_config():
     except Exception as e:
         # Log the exception e to your logging framework
         return jsonify({"status": "error", "message": str(e)}), 500
+
 
 @app.route('/api/gost/add_config', methods=['POST'])
 def add_config():
@@ -241,6 +242,32 @@ def api_get_network_interfaces():
         return jsonify(interfaces)
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/gost/update_config', methods=['PUT'])
+def update_gost_config():
+    # Get form data
+    item_id = request.form.get('id')
+    new_username = request.form.get('username')
+    new_password = request.form.get('password')
+    new_port = request.form.get('port')
+    new_interface = request.form.get('interface')
+
+    # Check if all required fields are provided
+    if not all([item_id, new_username, new_password, new_port, new_interface]):
+        return jsonify({"status": "error", "message": "Missing fields"}), 400
+
+    # You can then call a function to update the item
+    try:
+        # Assuming edit_item is defined elsewhere and updates the CSV
+        gost_mgmt.edit_item(item_id, new_username, new_password, new_port, new_interface)
+        return jsonify({"status": "success", "message": "Configuration updated successfully"}), 200
+    except ValueError as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+    except Exception as e:
+        # Catch any other exceptions and return a server error
+        return jsonify({"status": "error", "message": f"An error occurred while updating the configuration {e}"}), 500
+
+
     
 @app.route('/')
 def index():

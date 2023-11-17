@@ -14,7 +14,7 @@
 }
 
 /* Show the sidebar on hover */
-#wrapper:hover #sidebar-wrapper {
+#sidebar-wrapper {
     margin-left: 0;
 }
 
@@ -30,4 +30,4 @@
 /* Content styles */
 .container-fluid {
     padding: 2rem;
-}
+}"

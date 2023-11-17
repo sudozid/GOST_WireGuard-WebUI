@@ -137,7 +137,33 @@ def add_item(username, password, port, interface):
             'interface': interface
         })
 
+def edit_item(item_id, new_username, new_password, new_port, new_interface):
+    # First, read all data from the CSV file
+    with open(filepath, 'r', newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        rows = list(reader)
+    
+    # Update the row where the id matches item_id
+    item_found = False
+    for row in rows:
+        if row['id'] == str(item_id):
+            # Sanitize new values and update the row
+            row['username'] = sanitize_csv_value(new_username)
+            row['password'] = sanitize_csv_value(new_password)
+            row['port'] = new_port if is_valid_port(new_port) else row['port']
+            row['interface'] = new_interface if new_interface in get_network_interfaces() else row['interface']
+            item_found = True
+            break
+    
+    if not item_found:
+        raise ValueError("Item with the specified ID not found.")
 
+    # Write the updated data back to the CSV file
+    with open(filepath, 'w', newline='') as csvfile:
+        fieldnames = ['id', 'username', 'password', 'port', 'interface']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
     
 if __name__ == "__main__":
     print(get_network_interfaces())
