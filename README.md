@@ -8,6 +8,11 @@
 
 The code is dogshit I know, I'm not a regular coder and made most of it with the help of ChatGPT. If you feel like this is something useful for you, you can fork or idk start from scratch.
 
+![alt text](https://github.com/sudozid/GOST_WireGuard-WebUI/blob/main/ss1.png)
+
+![alt text](https://github.com/sudozid/GOST_WireGuard-WebUI/blob/main/ss2.png)
+
+
 You can run it with 
 
 `python3 api.py` 
